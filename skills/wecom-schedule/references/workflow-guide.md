@@ -39,10 +39,10 @@
 **处理流程**：
 1. **解析时间描述**（今天/明天/下周等）
 2. **提取会议标题和事项**
-3. **检测部门关键词**：如果提到"运营部"、"运营"等 → **自动添加运营部成员** `${USER_OPERATIONS}`
+3. **检测部门关键词**：如果提到"部门A"、"部门A成员"等 → **自动添加部门A成员** `${USER_DEPT_A}`
 4. **匹配参与者**：读取 `USER.md` 中的联系人列表
-   - 直接匹配姓名（如 `${USER_ADMIN}`、"贞总"→`${USER_ADMIN}`）
-   - 匹配部门（提到"运营部"→自动添加`${USER_OPERATIONS}`）
+   - 直接匹配姓名（如 `${USER_CONTACT}`、"某领导"→`${USER_CONTACT}`）
+   - 匹配部门（提到"部门A"→自动添加`${USER_DEPT_A}`）
 5. **确认参与者**：向用户确认识别到的参与者是否正确
 6. **创建日程**：
    - **attendees**：第一个成员为发起人，后面为其他参与者（当前私聊用户 + 匹配到的联系人 + 部门相关人员）
@@ -52,10 +52,10 @@
 
 | 场景 | 用户说法 | 参与者 |
 |------|---------|--------|
-| 与联系人开会 | "明天下午3点和贞总开个评审会" | attendees=当前用户+${USER_ADMIN}（第一个为发起人）, admins=当前用户 |
+| 与联系人开会 | "明天下午3点和某领导开个评审会" | attendees=当前用户+${USER_CONTACT}（第一个为发起人）, admins=当前用户 |
 | 纯个人提醒 | "提醒我明天早上9点吃饭" | attendees=当前用户（第一个为发起人）, admins=当前用户 |
-| 涉及运营部 | "约运营部明天下午开会" | attendees=当前用户+${USER_OPERATIONS}（第一个为发起人）, admins=当前用户 |
-| 混合场景 | "约${USER_PARTICIPANT_A}和运营部明天下午开会" | attendees=当前用户+${USER_PARTICIPANT_A}+${USER_OPERATIONS}（第一个为发起人）, admins=当前用户 |
+| 涉及部门 | "约部门A明天下午开会" | attendees=当前用户+${USER_DEPT_A}（第一个为发起人）, admins=当前用户 |
+| 混合场景 | "约${USER_PARTICIPANT}和部门A明天下午开会" | attendees=当前用户+${USER_PARTICIPANT}+${USER_DEPT_A}（第一个为发起人）, admins=当前用户 |
 
 ### 查询日程
 
@@ -90,7 +90,7 @@
 | 场景 | attendees（第一个为发起人） | admins |
 |------|---------------------------|--------|
 | 普通会议 | `$CREATOR_USERID,${USER_X},${USER_Y}` | `$CREATOR_USERID` |
-| 涉及部门 | `$CREATOR_USERID,${USER_OPERATIONS}` | `$CREATOR_USERID` |
+| 涉及部门 | `$CREATOR_USERID,${USER_DEPT_A}` | `$CREATOR_USERID` |
 | 查询发起人日程 | `list-user "$CREATOR_USERID" ...` | - |
 
 **注意事项**：

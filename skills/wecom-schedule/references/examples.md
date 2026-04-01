@@ -69,20 +69,20 @@
 - 具体时间是下午几点到几点？
 - 需要邀请哪些人？
 
-**用户**: "下午3点到4点，标题是产品评审会，帮我和${USER_ADMIN}约一下"
+**用户**: "下午3点到4点，标题是产品评审会，帮我和${USER_CONTACT}约一下"
 
 **助手**:
 好的，我来创建这个日程：
 - 标题：产品评审会
 - 时间：明天下午3点到4点
-- 参与者：您（发起人）+ ${USER_ADMIN}
+- 参与者：您（发起人）+ ${USER_CONTACT}
 
 ```bash
 ./wecom-schedule.sh create \
   --title "产品评审会" \
   --start "$DATE_TOMORROW 15:00" \
   --end "$DATE_TOMORROW 16:00" \
-  --attendees "$CREATOR_USERID,${USER_ADMIN}" \
+  --attendees "$CREATOR_USERID,${USER_CONTACT}" \
   --admins "$CREATOR_USERID"
 ```
 
