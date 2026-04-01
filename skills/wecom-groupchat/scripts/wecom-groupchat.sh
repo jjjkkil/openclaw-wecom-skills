@@ -7,7 +7,7 @@ set -e
 
 # 配置
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WORKSPACE_DIR="${WORKSPACE_DIR:-"$(cd "$SCRIPT_DIR/.." && pwd)"}"
+WORKSPACE_DIR="${WORKSPACE_DIR:-"$(cd "$SCRIPT_DIR/../../.." && pwd)"}"
 CONFIG_FILE="$WORKSPACE_DIR/config.json"
 TOKEN_SCRIPT="$WORKSPACE_DIR/skills/wecom-token.sh"
 
