@@ -1,0 +1,12 @@
+# Credentials
+config.json
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Temp files
+*.tmp
+/tmp/
