@@ -45,17 +45,17 @@
    - 匹配部门（提到"运营部"→自动添加`${USER_OPERATIONS}`）
 5. **确认参与者**：向用户确认识别到的参与者是否正确
 6. **创建日程**：
-   - **attendees**：当前私聊用户 + 匹配到的联系人 + 部门相关人员
-   - **admins**：当前私聊用户
+   - **attendees**：第一个成员为发起人，后面为其他参与者（当前私聊用户 + 匹配到的联系人 + 部门相关人员）
+   - **admins**：当前私聊用户（必填，最多3人）
 
 **私聊场景示例**：
 
 | 场景 | 用户说法 | 参与者 |
 |------|---------|--------|
-| 与联系人开会 | "明天下午3点和贞总开个评审会" | 当前用户 + ${USER_ADMIN} |
-| 纯个人提醒 | "提醒我明天早上9点吃饭" | 仅当前用户 |
-| 涉及运营部 | "约运营部明天下午开会" | 当前用户 + ${USER_OPERATIONS} |
-| 混合场景 | "约${USER_PARTICIPANT_A}和运营部明天下午开会" | 当前用户 + ${USER_PARTICIPANT_A} + ${USER_OPERATIONS} |
+| 与联系人开会 | "明天下午3点和贞总开个评审会" | attendees=当前用户+${USER_ADMIN}（第一个为发起人）, admins=当前用户 |
+| 纯个人提醒 | "提醒我明天早上9点吃饭" | attendees=当前用户（第一个为发起人）, admins=当前用户 |
+| 涉及运营部 | "约运营部明天下午开会" | attendees=当前用户+${USER_OPERATIONS}（第一个为发起人）, admins=当前用户 |
+| 混合场景 | "约${USER_PARTICIPANT_A}和运营部明天下午开会" | attendees=当前用户+${USER_PARTICIPANT_A}+${USER_OPERATIONS}（第一个为发起人）, admins=当前用户 |
 
 ### 查询日程
 
@@ -78,17 +78,20 @@
 
 **处理流程**：
 1. **提取被@用户** — 从消息中识别被@的用户ID
-2. **发起人** — 发送消息的用户（添加到参与者 + 设为管理员）
-3. **检测部门关键词** — 提到"运营部"自动添加 `${USER_OPERATIONS}`（相关部门成员）
+2. **发起人** — 发送消息的用户（作为 attendees 第一个成员 + 设为 admins）
+3. **检测部门关键词** — 提到"部门"自动添加 `${USER_group}`（相关部门成员）
 4. **组织者** — 机器人（应用自身）
+5. **创建日程**：
+   - **attendees**：消息发送者（第一个，作为发起人）+ 被@用户 + 部门相关人员
+   - **admins**：消息发送者（必填）
 
 **群聊示例**：
 
-| 场景 | 命令 |
-|------|------|
-| 普通会议 | `--attendees "$CREATOR_USERID,${USER_X},${USER_Y}"` |
-| 涉及运营部 | `--attendees "$CREATOR_USERID,${USER_OPERATIONS}"` |
-| 查询发起人日程 | `list-user "$CREATOR_USERID" "$DATE_TOMORROW" "$DATE_TOMORROW"` |
+| 场景 | attendees（第一个为发起人） | admins |
+|------|---------------------------|--------|
+| 普通会议 | `$CREATOR_USERID,${USER_X},${USER_Y}` | `$CREATOR_USERID` |
+| 涉及部门 | `$CREATOR_USERID,${USER_OPERATIONS}` | `$CREATOR_USERID` |
+| 查询发起人日程 | `list-user "$CREATOR_USERID" ...` | - |
 
 **注意事项**：
 - 群聊中需要开启 `groupPolicy` 才能响应

@@ -25,14 +25,12 @@ if [ -f "$CONFIG_FILE" ]; then
         AGENT_ID=$(jq -r '.wecom.agent_id // empty' "$CONFIG_FILE")
         PROXY_URL=$(jq -r '.proxy.url // empty' "$CONFIG_FILE")
         DEFAULT_CAL_ID=$(jq -r '.wecom.default_cal_id // empty' "$CONFIG_FILE")
-        DEFAULT_ORGANIZER=$(jq -r '.wecom.default_organizer // empty' "$CONFIG_FILE")
     else
         CORP_ID=$(grep -o '"corp_id"[^,]*' "$CONFIG_FILE" | head -1 | cut -d'"' -f4)
         CORP_SECRET=$(grep -o '"corp_secret"[^,]*' "$CONFIG_FILE" | head -1 | cut -d'"' -f4)
         AGENT_ID=$(grep -o '"agent_id"[^,]*' "$CONFIG_FILE" | head -1 | cut -d'"' -f4)
         PROXY_URL=$(grep -o '"url"[^,]*' "$CONFIG_FILE" | tail -1 | cut -d'"' -f4)
         DEFAULT_CAL_ID=$(grep -o '"default_cal_id"[^,]*' "$CONFIG_FILE" | head -1 | cut -d'"' -f4)
-        DEFAULT_ORGANIZER=$(grep -o '"default_organizer"[^,]*' "$CONFIG_FILE" | head -1 | cut -d'"' -f4)
     fi
 fi
 
@@ -42,7 +40,6 @@ CORP_SECRET="${CORP_SECRET}"
 AGENT_ID="${AGENT_ID}"
 PROXY_URL="${PROXY_URL}"
 DEFAULT_CAL_ID="${DEFAULT_CAL_ID}"
-DEFAULT_ORGANIZER="${DEFAULT_ORGANIZER}"
 
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "⚠️  警告: 未找到配置文件 $CONFIG_FILE，使用默认配置" >&2
@@ -121,7 +118,6 @@ create_calendar() {
     local json=$(cat <<EOF
 {
     "calendar": {
-        "organizer": "${DEFAULT_ORGANIZER}",
         "summary": "${name}",
         "description": "${desc}",
         "admins": [],
@@ -152,6 +148,7 @@ get_calendar_details() {
 
 # 创建日程
 # 注意：只有被艾特或发起人要求时，才通过 --attendees 添加 ${USER_X}
+# 发起人由 attendees 的第一个成员决定，admins 为必填的管理员
 create_schedule() {
     local title=""
     local start=""
@@ -159,7 +156,7 @@ create_schedule() {
     local cal_id=""
     local desc=""
     local location=""
-    local attendees=""  # 存储参与者（逗号分隔）
+    local attendees=""  # 存储参与者（逗号分隔），第一个成员为发起人
     local admins=""     # 存储管理员（逗号分隔），最多3人
     
     # 重复日程参数
@@ -186,7 +183,7 @@ create_schedule() {
             --calId) cal_id="$2"; shift 2 ;;
             --description) desc="$2"; shift 2 ;;
             --location) location="$2"; shift 2 ;;
-            --attendees) attendees="$2"; shift 2 ;;  # 参与者，逗号分隔
+            --attendees) attendees="$2"; shift 2 ;;  # 参与者，逗号分隔（第一个为发起人）
             --admins) admins="$2"; shift 2 ;;        # 管理员，逗号分隔，最多3人
             --is_repeat) is_repeat="$2"; shift 2 ;;  # 是否重复：0-否，1-是
             --repeat_type) repeat_type="$2"; shift 2 ;;  # 重复类型：0-每日，1-每周，2-每月，5-每年，7-工作日
@@ -925,7 +922,7 @@ case "$1" in
   list-calendars                       列出所有日历（已弃用）
   get-calendar "cal_id" [...]          获取日历详情（支持多ID）
   create --title "xxx" --start "xxx" --end "xxx" [--calId "xxx"] [--attendees "user1,user2"] [--admins "admin1,admin2"]
-                                       创建日程（admins最多3人，需在attendees中）
+                                       创建日程（attendees第一个成员为发起人，admins必填且最多3人）
                                        重复日程参数：
                                        [--is_repeat 1] [--repeat_type 0|1|2|5|7] [--repeat_until "2025-12-31"]
                                        [--is_custom_repeat 1] [--repeat_interval N]
@@ -953,16 +950,21 @@ case "$1" in
 
 示例:
   ./wecom-schedule.sh create-calendar "团队日历" "用于团队会议"
-  ./wecom-schedule.sh create --title "周会" --start "$DATE_TODAY 14:00" --end "$DATE_TODAY 15:00"
+  # 创建日程（attendees第一个成员为发起人，admins为必填管理员）
+  # 群聊场景：attendees第一个成员为群主/@机器人的用户，admins为其本人
+  # 私聊场景：attendees第一个成员为当前私聊用户，admins为其本人
+  ./wecom-schedule.sh create --title "周会" --start "$DATE_TODAY 14:00" --end "$DATE_TODAY 15:00" --attendees "${USER_CREATOR}" --admins "${USER_CREATOR}"
   # USER_X, USER_Y 示例：user1,user2
-  ./wecom-schedule.sh create --title "评审会" --start "$DATE_TODAY 14:00" --end "$DATE_TODAY 15:00" --attendees "${USER_X},${USER_Y}" --admins "${USER_ADMIN}"
+  ./wecom-schedule.sh create --title "评审会" --start "$DATE_TODAY 14:00" --end "$DATE_TODAY 15:00" --attendees "${USER_CREATOR},${USER_X},${USER_Y}" --admins "${USER_CREATOR}"
   
   # 创建每周三重复的会议
   ./wecom-schedule.sh create --title "周例会" --start "$DATE_TODAY 14:00" --end "$DATE_TODAY 15:00" \
+    --attendees "${USER_CREATOR}" --admins "${USER_CREATOR}" \
     --is_repeat 1 --repeat_type 1 --is_custom_repeat 1 --repeat_day_of_week "3" --repeat_until "$DATE_FUTURE"
   
   # 创建工作日每天重复的提醒
   ./wecom-schedule.sh create --title "日报提醒" --start "$DATE_TODAY 18:00" --end "$DATE_TODAY 18:30" \
+    --attendees "${USER_CREATOR}" --admins "${USER_CREATOR}" \
     --is_repeat 1 --repeat_type 7
   
   ./wecom-schedule.sh list-cal "\${DEFAULT_CAL_ID}" "$DATE_TODAY" "$DATE_TODAY"

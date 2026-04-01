@@ -2,6 +2,10 @@
 
 企业微信集成 OpenClaw 的技能包，支持群聊管理、日程会议、智能表格（Smartsheet）功能。
 
+## 相关项目
+
+本项目的企业微信配置参考自 [YanHaidao/wecom](https://github.com/YanHaidao/wecom)。
+
 ## 目录结构
 
 ```
@@ -36,7 +40,9 @@ wecom-openclaw/
 
 这会自动从 OpenClaw 的 `openclaw.json` 中读取企业微信的 `corp_id`、`agent_id`、`agent_secret`，并写入 `config.json`。
 
-脚本会引导你选择使用的企业微信账号（`business`/`lab`/`ops`）。
+脚本会引导你选择使用的企业微信账号（如 `account1`/`account2` 等，对应 OpenClaw 中 wecom 插件配置的 `channels.wecom.accounts` 下的账号 key）。
+
+> **账号与 OpenClaw 配置的对应关系**：初始化脚本读取的是 `~/.openclaw/openclaw.json` 中 `channels.wecom.accounts` 下定义的账号。每个账号 key（如 `account1`）对应一个企业微信自建应用配置，包含 `corpId`、`agentId`、`agentSecret` 等。通过指定账号 key，脚本会自动提取对应的企业微信凭证写入 `config.json`。
 
 ### 第二步：确认以下参数的默认值
 
@@ -45,7 +51,6 @@ wecom-openclaw/
 | 字段 | 含义 | 如何获取 |
 |------|------|---------|
 | `default_meeting_admin` | 预约会议的管理员用户ID | 企业微信管理后台 → 成员列表 → 找到负责创建会议的管理员账号 |
-| `default_organizer` | 日程的默认发起人用户ID | 同上，找一个经常发起日程的账号 |
 | `default_calendar_id` | 日程使用的日历ID | 日程接口权限开通后，调用一次创建日历接口会返回日历ID |
 
 > **日历ID说明**：如果这是你第一次使用日程功能，可以跳过此字段，脚本会使用企业微信自动创建的默认日历。如果需要使用特定日历（如共享日历），请先手动创建一个日历，然后将返回的 `cal_id` 填入。
@@ -83,11 +88,13 @@ wecom-openclaw/
 ```bash
 # 从 OpenClaw 配置自动读取企业微信凭证
 ./scripts/init-wecom-config.sh
-# 或指定账号：
-./scripts/init-wecom-config.sh business   # 商务助理
-./scripts/init-wecom-config.sh lab        # 实验室
-./scripts/init-wecom-config.sh ops        # 运营
+
+# 或指定账号 key（对应 openclaw.json 中 channels.wecom.accounts 下的 key）：
+./scripts/init-wecom-config.sh account1
+./scripts/init-wecom-config.sh account2
 ```
+
+> 账号 key 如 `account1`、`account2` 等，是你在 OpenClaw 的 wecom 插件配置中定义的 `channels.wecom.accounts` 下的 key 名。运行脚本时会列出所有可用的账号供选择。
 
 **方式二：手动配置**
 
@@ -107,7 +114,6 @@ cp config.example.json config.json
 | `wecom.agent_id` | 应用AgentID |
 | `wecom.default_meeting_admin` | 预约会议的默认管理员用户ID |
 | `wecom.default_calendar_id` | 日程使用的日历ID |
-| `wecom.default_organizer` | 日程默认发起人用户ID |
 | `proxy.url` | HTTP代理地址（服务器IP不固定时需要） |
 
 ### 2. 技能说明
