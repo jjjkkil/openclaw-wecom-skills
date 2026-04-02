@@ -135,6 +135,20 @@ create_calendar() {
     local name="$1"
     local desc="${2:-}"
     local color="${3:-${DEFAULT_CALENDAR_COLOR:-#3366CC}}"
+    local admins="${4:-}"
+    
+    # 构建 admins JSON 数组
+    local admins_json="[]"
+    if [ -n "$admins" ]; then
+        local admin_list=""
+        for admin_id in $(echo "$admins" | tr ',' ' '); do
+            if [ -n "$admin_list" ]; then
+                admin_list="${admin_list},"
+            fi
+            admin_list="${admin_list}\"${admin_id}\""
+        done
+        admins_json="[${admin_list}]"
+    fi
     
     local json=$(cat <<EOF
 {
@@ -142,7 +156,7 @@ create_calendar() {
         "summary": "${name}",
         "description": "${desc}",
         "color": "${color}",
-        "admins": [],
+        "admins": ${admins_json},
         "is_public": 1
     },
     "agentid": ${AGENT_ID}
@@ -886,10 +900,10 @@ update_schedule() {
 case "$1" in
     create-calendar)
         if [ -z "$2" ]; then
-            echo "用法: $0 create-calendar \"日历名称\" [\"描述\"]"
+            echo "用法: $0 create-calendar \"日历名称\" [\"描述\"] [\"颜色\"] [\"admins\"]"
             exit 1
         fi
-        create_calendar "$2" "$3"
+        create_calendar "$2" "$3" "$4" "$5"
         ;;
         
     list-calendars|list-cals)
@@ -910,7 +924,7 @@ case "$1" in
             exit 1
         fi
         echo "📅 获取日历详情..." >&2
-        get_calendar_details "$@"
+        get_calendar_details "${@:2}"
         ;;
 
     create)
