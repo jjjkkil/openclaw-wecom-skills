@@ -98,6 +98,23 @@ wecom-openclaw/
 ./skills/wecom-schedule/scripts/wecom-schedule.sh create-calendar "我的日历" "用于团队日程管理"
 ```
 
+创建成功后，日历信息会自动保存到 `config.json` 中的 `calendars` 字典，**无需手动记录**。
+
+查看已保存的日历：
+
+```bash
+./skills/wecom-schedule.sh list-cals
+```
+
+> **多日历支持**：`calendars` 是一个字典，键为日历 ID，值为名称、描述、创建时间等信息。第一个创建的日历会自动成为默认日历；之后的创建顺序不影响默认选择。调用日程命令时若不指定 `--calId`，默认使用第一个日历。
+
+### 第三步：确认其他参数（可选）
+
+| 字段 | 含义 | 如何获取 |
+|------|------|---------|
+| `default_meeting_admin` | 预约会议的管理员用户ID | 企业微信管理后台 → 成员列表 → 找到负责创建会议的管理员账号 |
+| `calendars` | 日历字典 | 创建日历时自动写入，第一个日历自动成为默认日历 |
+
 ### 第三步：检查代理配置
 
 如果你的服务器 IP 会经常变动，脚本可能无法访问企业微信 API，此时需要在 `config.json` 中填入 `proxy.url`。
@@ -148,7 +165,7 @@ cp config.example.json config.json
 | `wecom.corp_secret` | 应用Secret |
 | `wecom.agent_id` | 应用AgentID |
 | `wecom.default_meeting_admin` | 预约会议的默认管理员用户ID |
-| `wecom.default_calendar_id` | 日程使用的日历ID |
+| `wecom.calendars` | 日历字典（键为 ID，值为 name/description/created_at），第一个键自动作为默认日历 |
 | `proxy.url` | HTTP代理地址（服务器IP不固定时需要） |
 
 ### 2. 技能说明

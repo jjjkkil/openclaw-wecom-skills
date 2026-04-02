@@ -4,7 +4,7 @@
     "corp_secret": "YOUR_CORP_SECRET",
     "agent_id": "YOUR_AGENT_ID",
     "default_meeting_admin": "YOUR_MEETING_ADMIN_USERID",
-    "default_calendar_id": "YOUR_CALENDAR_ID"
+    "calendars": {}
   },
   "proxy": {
     "url": "http://user:password@YOUR_PROXY_IP:PORT"

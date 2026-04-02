@@ -182,10 +182,10 @@ main() {
 
 示例:
   # 读取单个成员
-  $0 get WangXinJing
+  $0 get userid_1
 
   # 批量读取
-  $0 batch WangXinJing,LiuZhen,Mimi
+  $0 batch userid_1,userid_2,userid_3
 
   # 获取部门成员列表
   $0 dept 1       # 根部门，不含子部门

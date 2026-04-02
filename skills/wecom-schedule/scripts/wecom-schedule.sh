@@ -3,8 +3,9 @@
 # 企业微信日程管理工具 (Bash + curl 版本，支持代理)
 #
 # 用法:
-#   ./wecom-schedule.sh create-calendar "日历名称" "描述"
-#   ./wecom-schedule.sh list-calendars
+#   ./wecom-schedule.sh create-calendar "日历名称" ["描述"]
+#   ./wecom-schedule.sh list-cals
+#   ./wecom-schedule.sh remove-calendar "cal_id"
 #   ./wecom-schedule.sh create --title "会议" --start "2025-01-15 14:00" --end "2025-01-15 15:00"
 #   ./wecom-schedule.sh get "schedule_id"
 #   ./wecom-schedule.sh delete "schedule_id"
@@ -16,22 +17,22 @@ WORKSPACE_DIR="${WORKSPACE_DIR:-"$(cd "$SCRIPT_DIR/../../.." && pwd)"}"
 CONFIG_FILE="$WORKSPACE_DIR/config.json"
 TOKEN_SCRIPT="$WORKSPACE_DIR/skills/wecom-token.sh"
 
-# 如果 config.json 存在则读取，否则使用默认值
+# 需要 jq 来处理 JSON（新版日历功能依赖 jq）
+if ! command -v jq >/dev/null 2>&1; then
+    echo "❌ 错误: 此版本需要 jq，请先安装: brew install jq" >&2
+    exit 1
+fi
+
+# 如果 config.json 存在则读取
 if [ -f "$CONFIG_FILE" ]; then
-    # 优先使用 jq，如果没有则使用 grep 回退
-    if command -v jq >/dev/null 2>&1; then
-        CORP_ID=$(jq -r '.wecom.corp_id // empty' "$CONFIG_FILE")
-        CORP_SECRET=$(jq -r '.wecom.corp_secret // empty' "$CONFIG_FILE")
-        AGENT_ID=$(jq -r '.wecom.agent_id // empty' "$CONFIG_FILE")
-        PROXY_URL=$(jq -r '.proxy.url // empty' "$CONFIG_FILE")
-        DEFAULT_CAL_ID=$(jq -r '.wecom.default_cal_id // empty' "$CONFIG_FILE")
-    else
-        CORP_ID=$(grep -o '"corp_id"[^,]*' "$CONFIG_FILE" | head -1 | cut -d'"' -f4)
-        CORP_SECRET=$(grep -o '"corp_secret"[^,]*' "$CONFIG_FILE" | head -1 | cut -d'"' -f4)
-        AGENT_ID=$(grep -o '"agent_id"[^,]*' "$CONFIG_FILE" | head -1 | cut -d'"' -f4)
-        PROXY_URL=$(grep -o '"url"[^,]*' "$CONFIG_FILE" | tail -1 | cut -d'"' -f4)
-        DEFAULT_CAL_ID=$(grep -o '"default_cal_id"[^,]*' "$CONFIG_FILE" | head -1 | cut -d'"' -f4)
-    fi
+    CORP_ID=$(jq -r '.wecom.corp_id // empty' "$CONFIG_FILE")
+    CORP_SECRET=$(jq -r '.wecom.corp_secret // empty' "$CONFIG_FILE")
+    AGENT_ID=$(jq -r '.wecom.agent_id // empty' "$CONFIG_FILE")
+    PROXY_URL=$(jq -r '.proxy.url // empty' "$CONFIG_FILE")
+    CALENDARS_JSON=$(jq -r '.wecom.calendars // {}' "$CONFIG_FILE")
+else
+    echo "⚠️  警告: 未找到配置文件 $CONFIG_FILE，使用默认配置" >&2
+    CALENDARS_JSON="{}"
 fi
 
 # 如果配置为空，使用默认值
@@ -39,11 +40,27 @@ CORP_ID="${CORP_ID}"
 CORP_SECRET="${CORP_SECRET}"
 AGENT_ID="${AGENT_ID}"
 PROXY_URL="${PROXY_URL}"
-DEFAULT_CAL_ID="${DEFAULT_CAL_ID}"
 
-if [ ! -f "$CONFIG_FILE" ]; then
-    echo "⚠️  警告: 未找到配置文件 $CONFIG_FILE，使用默认配置" >&2
-fi
+# 获取默认日历 ID（calendars 对象中第一个键）
+get_default_cal_id() {
+    if [ -z "$CALENDARS_JSON" ] || [ "$CALENDARS_JSON" = "null" ] || [ "$CALENDARS_JSON" = "{}" ]; then
+        echo ""
+    else
+        echo "$CALENDARS_JSON" | jq -r 'keys[0]' 2>/dev/null
+    fi
+}
+
+# 获取日历名称
+get_calendar_name() {
+    local cal_id="$1"
+    if [ -z "$CALENDARS_JSON" ] || [ "$CALENDARS_JSON" = "null" ]; then
+        echo ""
+    else
+        echo "$CALENDARS_JSON" | jq -r ".[\"${cal_id}\"].name // empty" 2>/dev/null
+    fi
+}
+
+DEFAULT_CAL_ID=$(get_default_cal_id)
 
 # 获取 access_token（统一从 wecom-token.sh 获取，失败才回退直接调用）
 get_token() {
@@ -128,7 +145,42 @@ create_calendar() {
 EOF
 )
     
-    _api_call "POST" "/cgi-bin/oa/calendar/add" "$json"
+    local response=$(_api_call "POST" "/cgi-bin/oa/calendar/add" "$json")
+    echo "$response"
+    
+    # 解析返回的 cal_id 并写入 config.json
+    local errcode=$(echo "$response" | jq -r '.errcode // empty')
+    if [ "$errcode" = "0" ]; then
+        local cal_id=$(echo "$response" | jq -r '.cal_id // empty')
+        if [ -n "$cal_id" ] && [ "$cal_id" != "null" ]; then
+            local created_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            local new_cal_entry=$(jq -n \
+                --arg id "$cal_id" \
+                --arg name "$name" \
+                --arg desc "$desc" \
+                --arg created "$created_at" \
+                '{name: $name, description: $desc, created_at: $created}')
+            
+            # 检查是否已有 calendars 对象
+            if [ ! -f "$CONFIG_FILE" ]; then
+                echo "⚠️ 配置文件不存在，无法保存日历信息" >&2
+                return
+            fi
+            
+            local existing=$(jq -r '.wecom.calendars // {}' "$CONFIG_FILE")
+            local new_calendars=$(echo "$existing" | jq --argjson id "$cal_id" --argjson entry "$new_cal_entry" \
+                '.[$id] = $entry')
+            
+            jq --argjson calendars "$new_calendars" \
+                '.wecom.calendars = $calendars' "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && \
+                mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+            
+            echo "✅ 日历已保存至 config.json: $cal_id ($name)"
+        fi
+    else
+        local errmsg=$(echo "$response" | jq -r '.errmsg // empty')
+        echo "⚠️  日历未保存到 config.json（API 返回错误: $errmsg）" >&2
+    fi
 }
 
 # 获取日历详情（支持多个日历ID）
@@ -215,10 +267,11 @@ create_schedule() {
     fi
     
     
-    # 默认日历 ID: 从 config.json 的 default_cal_id 读取
-    local default_cal_id="${DEFAULT_CAL_ID:-}"
+    # 默认日历 ID: 从 config.json 的 calendars 动态读取第一个
+    local default_cal_id
+    default_cal_id=$(get_default_cal_id)
     if [ -z "$default_cal_id" ]; then
-        echo "❌ 错误: 未配置默认日历 ID (default_cal_id)" >&2
+        echo "❌ 错误: 未配置默认日历 ID (calendars)，请先创建日历" >&2
         exit 1
     fi
     cal_id="${cal_id:-$default_cal_id}"
@@ -387,10 +440,11 @@ get_user_schedules() {
     fi
     
     # 使用已知的日历 ID 查询（企业微信 API 需要先知道日历 ID 才能查询）
-    # 默认日历 ID: 从 config.json 的 default_cal_id 读取
-    local default_cal_id="${DEFAULT_CAL_ID:-}"
+    # 默认日历 ID: 从 config.json 的 calendars 动态读取第一个
+    local default_cal_id
+    default_cal_id=$(get_default_cal_id)
     if [ -z "$default_cal_id" ]; then
-        echo "❌ 错误: 未配置默认日历 ID (default_cal_id)" >&2
+        echo "❌ 错误: 未配置默认日历 ID (calendars)，请先创建日历" >&2
         exit 1
     fi
     
@@ -830,21 +884,24 @@ case "$1" in
             echo "用法: $0 create-calendar \"日历名称\" [\"描述\"]"
             exit 1
         fi
-        echo "📅 创建日历..."
         create_calendar "$2" "$3"
         ;;
         
-    list-calendars)
-        echo "❌ 该命令已弃用" >&2
-        echo "企业微信 API 不支持获取所有日历列表" >&2
-        echo "请使用 'list-cal \"cal_id\"' 查询指定日历的日程" >&2
-        exit 1
+    list-calendars|list-cals)
+        echo "📅 config.json 中保存的日历列表:"
+        if [ -z "$CALENDARS_JSON" ] || [ "$CALENDARS_JSON" = "null" ] || [ "$CALENDARS_JSON" = "{}" ]; then
+            echo "  （无）"
+        else
+            echo "$CALENDARS_JSON" | jq -r 'to_entries[] | "  [\(.key)] \(.value.name) — \(.value.description // "")"'
+        fi
+        echo ""
+        echo "默认日历: $(get_default_cal_id)"
         ;;
 
     get-calendar)
         if [ -z "$2" ]; then
             echo "用法: $0 get-calendar \"cal_id1\" [\"cal_id2\" ...]" >&2
-            echo "示例: $0 get-calendar \"\${DEFAULT_CAL_ID}\"" >&2
+            echo "示例: $0 get-calendar \"$(get_default_cal_id)\"" >&2
             exit 1
         fi
         echo "📅 获取日历详情..." >&2
@@ -860,11 +917,35 @@ case "$1" in
     list-cal)
         if [ -z "$2" ]; then
             echo "用法: $0 list-cal \"cal_id\" [\"开始日期\" \"结束日期\"]"
-            echo "示例: $0 list-cal \"\${DEFAULT_CAL_ID}\" \"\$DATE_TODAY\" \"\$DATE_TODAY\""
+            echo "示例: $0 list-cal \"$(get_default_cal_id)\" \"\$DATE_TODAY\" \"\$DATE_TODAY\""
             exit 1
         fi
         echo "📅 查询日历日程..."
         get_schedules_by_calendar "$2" "$3" "$4"
+        ;;
+        
+    remove-calendar)
+        if [ -z "$2" ]; then
+            echo "用法: $0 remove-calendar \"cal_id\""
+            echo "从 config.json 中移除日历记录（不影响企业微信实际日历）"
+            exit 1
+        fi
+        local remove_id="$2"
+        if [ ! -f "$CONFIG_FILE" ]; then
+            echo "❌ 配置文件不存在" >&2
+            exit 1
+        fi
+        local existing=$(jq -r '.wecom.calendars // {}' "$CONFIG_FILE")
+        local exists=$(echo "$existing" | jq -r "has(\"$remove_id\")")
+        if [ "$exists" != "true" ]; then
+            echo "❌ config.json 中未找到日历: $remove_id" >&2
+            exit 1
+        fi
+        local new_calendars=$(echo "$existing" | jq --argjson id "$remove_id" 'del(.[$id])')
+        jq --argjson calendars "$new_calendars" \
+            '.wecom.calendars = $calendars' "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && \
+            mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+        echo "✅ 已从 config.json 移除日历: $remove_id"
         ;;
         
     get)
@@ -951,6 +1032,13 @@ case "$1" in
 示例:
   ./wecom-schedule.sh create-calendar "团队日历" "用于团队会议"
   # 创建日程（attendees第一个成员为发起人，admins为必填管理员）
+  # 日历创建后自动保存到 config.json，无需手动记录
+  # 默认取 calendars 中的第一个日历作为默认日历
+  
+  ./wecom-schedule.sh list-cals
+  # 查看所有已保存的日历及默认日历
+
+  ./wecom-schedule.sh create --title "周会" --start "$DATE_TODAY 14:00" --end "$DATE_TODAY 15:00" --attendees "${USER_CREATOR}" --admins "${USER_CREATOR}"
   # 群聊场景：attendees第一个成员为群主/@机器人的用户，admins为其本人
   # 私聊场景：attendees第一个成员为当前私聊用户，admins为其本人
   ./wecom-schedule.sh create --title "周会" --start "$DATE_TODAY 14:00" --end "$DATE_TODAY 15:00" --attendees "${USER_CREATOR}" --admins "${USER_CREATOR}"
@@ -967,13 +1055,16 @@ case "$1" in
     --attendees "${USER_CREATOR}" --admins "${USER_CREATOR}" \
     --is_repeat 1 --repeat_type 7
   
-  ./wecom-schedule.sh list-cal "\${DEFAULT_CAL_ID}" "$DATE_TODAY" "$DATE_TODAY"
+  ./wecom-schedule.sh list-cal "$(./wecom-schedule.sh list-cals | grep '^默认' | grep -o '\[.*\]' | tr -d '[]')" "$DATE_TODAY" "$DATE_TODAY"
   ./wecom-schedule.sh list-user "${USER_X}" "$DATE_TODAY" "$DATE_TODAY"
   ./wecom-schedule.sh update --schedule_id "xxx" --start "$DATE_TOMORROW 16:00" --end "$DATE_TOMORROW 17:00" --title "新标题"
   
   # 仅修改重复日程的这一次
   ./wecom-schedule.sh update --schedule_id "xxx" --start "$DATE_TOMORROW 15:00" --end "$DATE_TOMORROW 16:00" \
     --op_mode 1 --op_start_time 1737003600
+    
+  # 从 config.json 移除日历记录（不影响企业微信实际日历）
+  ./wecom-schedule.sh remove-calendar "cal_id_xxx"
 EOF
         ;;
 esac
