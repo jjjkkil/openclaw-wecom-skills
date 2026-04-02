@@ -49,6 +49,7 @@ openclaw-wecom-skills/           # 技能包
 ├── scripts/
 │   └── init-wecom-config.sh    # 从 OpenClaw 配置初始化凭证
 └── skills/
+    ├── wecom-token.sh          # ⚠️ 全局token管理脚本（必须放在skills/根目录）
     ├── wecom-groupchat/
     │   └── scripts/wecom-groupchat.sh
     ├── wecom-schedule/
@@ -117,6 +118,12 @@ cp config.example.json config.json
 ```
 
 日历创建成功后会自动保存到 `config.json` 的 `calendars` 字典，无需手动记录。
+
+### Token 管理说明
+⚠️ 必须确保 `skills/wecom-token.sh` 存在于 `skills/` 根目录下，所有子技能脚本统一通过该脚本管理企业微信 access_token 生命周期，无需每个脚本单独处理：
+- `./skills/wecom-token.sh get`：获取 access_token（自动缓存，未过期直接返回）
+- `./skills/wecom-token.sh force-refresh`：强制刷新 token
+token 会自动缓存到根目录的 `config.json` 中，请勿手动修改缓存字段。
 
 ### 快速验证
 

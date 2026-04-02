@@ -31,6 +31,11 @@ cp config.example.json config.json
 
 **第三步**：确认 `config.json` 中 `default_meeting_admin` 已填写（企业微信管理后台 → 成员列表中的管理员用户ID）。
 
+**第四步**：确认 `skills/wecom-token.sh` 存在于 `skills/` 根目录下，所有子技能统一通过该脚本管理 access_token：
+- `./skills/wecom-token.sh get`：获取 access_token（自动缓存，未过期直接返回）
+- `./skills/wecom-token.sh force-refresh`：强制刷新 token
+token 自动缓存到根目录 `config.json` 中，无需手动维护。
+
 > 脚本路径规范：`skills/<skill>/scripts/<script>.sh`，配置在 workspace 根目录的 `config.json`，无需额外配置路径。
 
 ## 子技能
