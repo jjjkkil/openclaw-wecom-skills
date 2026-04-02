@@ -1,5 +1,10 @@
 # WeCom OpenClaw Skills
 
+> ⚠️ **重要说明**：企业微信只支持**自建应用**的服务端接口适配，使用本技能包需要 OpenClaw 已接入企业微信自建应用渠道。关于如何配置企业微信自建应用渠道，请参考 [YanHaidao/wecom](https://github.com/YanHaidao/wecom)。
+## 相关项目
+本项目的企业微信配置参考自 [YanHaidao/wecom](https://github.com/YanHaidao/wecom)。
+
+
 企业微信集成 OpenClaw 的技能包，支持群聊管理、日程会议、智能表格（Smartsheet）功能。
 
 ## ✨ 看看你能做什么
@@ -34,9 +39,7 @@
 
 ---
 
-## 相关项目
 
-本项目的企业微信配置参考自 [YanHaidao/wecom](https://github.com/YanHaidao/wecom)。
 
 ## 目录结构
 

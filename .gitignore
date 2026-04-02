@@ -1,12 +1,26 @@
-# Credentials
+# 配置文件（包含敏感信息）
 config.json
 
-# macOS
-.DS_Store
+# 环境变量
+.env
+.env.local
 
-# Logs
+# 日志
 *.log
+logs/
 
-# Temp files
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 临时文件
 *.tmp
-/tmp/
+*.temp
+tmp/
+temp/

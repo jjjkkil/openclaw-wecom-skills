@@ -1,0 +1,50 @@
+name: wecom-openclaw
+description: 企业微信全能工具包 - 集成日程管理、会议预约、群聊协作、智能表格
+version: 1.0.0
+author: OpenClaw Community
+license: MIT
+homepage: https://github.com/openclaw/wecom-openclaw
+repository: https://github.com/openclaw/wecom-openclaw.git
+
+# Skill 分类
+category: productivity
+tags:
+  - 企业微信
+  - 日程管理
+  - 会议预约
+  - 群聊
+  - 智能表格
+  - wecom
+  - 办公自动化
+
+# 依赖（如果有）
+dependencies: []
+
+# 子 Skills（本包包含）
+skills:
+  - wecom-schedule
+  - wecom-meeting
+  - wecom-groupchat
+  - wecom-smartsheet
+
+# 初始化引导
+setup:
+  script: ./scripts/init-wecom-config.sh
+  description: 运行初始化脚本配置企业微信凭证
+
+# 触发词
+triggers:
+  - 企业微信
+  - 日程
+  - 会议
+  - 群聊
+  - 智能表格
+  - wecom
+  - 预约
+  - 创建日程
+  - 建群
+
+# 入口点（Agent 首次加载时会读取）
+entry:
+  skill: wecom-openclaw
+  readme: README.md
