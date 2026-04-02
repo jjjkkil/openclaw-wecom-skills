@@ -30,6 +30,7 @@ if [ -f "$CONFIG_FILE" ]; then
     AGENT_ID=$(jq -r '.wecom.agent_id // empty' "$CONFIG_FILE")
     PROXY_URL=$(jq -r '.proxy.url // empty' "$CONFIG_FILE")
     CALENDARS_JSON=$(jq -r '.wecom.calendars // {}' "$CONFIG_FILE")
+    DEFAULT_CALENDAR_COLOR=$(jq -r '.default_calendar_color // empty' "$CONFIG_FILE")
 else
     echo "⚠️  警告: 未找到配置文件 $CONFIG_FILE，使用默认配置" >&2
     CALENDARS_JSON="{}"
@@ -128,15 +129,19 @@ _api_call() {
 }
 
 # 创建日历
+# 用法: create_calendar "名称" ["描述"] ["颜色代码"]
+# 颜色示例: #3366CC(蓝) #FF6600(橙) #009900(绿) #CC0000(红) #9900CC(紫)
 create_calendar() {
     local name="$1"
     local desc="${2:-}"
+    local color="${3:-${DEFAULT_CALENDAR_COLOR:-#3366CC}}"
     
     local json=$(cat <<EOF
 {
     "calendar": {
         "summary": "${name}",
         "description": "${desc}",
+        "color": "${color}",
         "admins": [],
         "is_public": 1
     },
