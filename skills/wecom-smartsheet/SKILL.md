@@ -15,6 +15,21 @@ description: 通过企业微信 API 创建、管理和操作智能表格（Smart
 2. **权限配置**：登录企业微信管理端 → 协作 → 文档 → API → 配置「可调用接口的应用」
 3. **环境要求**：企业微信 4.0.20 及以上版本；如服务器 IP 动态变化需配置 HTTP 代理
 
+## ⚠️ 执行注意
+
+**使用 `bash` 执行
+
+```bash
+# ✅ 正确
+bash skills/wecom-smartsheet/scripts/wecom-smartsheet.sh create --name "表格名称" ...
+
+# ❌ 错误 — 会导致路径计算错误、配置文件找不到
+source skills/wecom-smartsheet/scripts/wecom-smartsheet.sh create --name "表格名称" ...
+. skills/wecom-smartsheet/scripts/wecom-smartsheet.sh create --name "表格名称" ...
+```
+
+原因：脚本使用 `${BASH_SOURCE[0]}` 计算自身路径
+
 ## 工具位置
 
 ```
@@ -88,21 +103,21 @@ client.add_records(docid, sheet["properties"]["sheet_id"], [{"values": {"类别"
 
 ```bash
 # 创建表格
-RESULT=$(./scripts/create-sheet.sh create --name "项目预算表")
+RESULT=$(bash skills/wecom-smartsheet/scripts/create-sheet.sh create --name "项目预算表")
 DOCID=$(echo $RESULT | jq -r '.docid')
 
 # 添加子表
-SHEET_ID=$(./scripts/manage-sheet.sh add --docid "$DOCID" --title "2024年预算" | jq -r '.properties.sheet_id')
+SHEET_ID=$(bash skills/wecom-smartsheet/scripts/manage-sheet.sh add --docid "$DOCID" --title "2024年预算" | jq -r '.properties.sheet_id')
 
 # 添加字段和记录
-./scripts/manage-field.sh add --docid "$DOCID" --sheet_id "$SHEET_ID" --fields '[{"field_title": "类别", "field_type": "FIELD_TYPE_TEXT"}]'
-./scripts/manage-record.sh add --docid "$DOCID" --sheet_id "$SHEET_ID" --records '[{"values": {"类别": [{"type": "text", "text": "研究经费"}]}}]'
+bash skills/wecom-smartsheet/scripts/manage-field.sh add --docid "$DOCID" --sheet_id "$SHEET_ID" --fields '[{"field_title": "类别", "field_type": "FIELD_TYPE_TEXT"}]'
+bash skills/wecom-smartsheet/scripts/manage-record.sh add --docid "$DOCID" --sheet_id "$SHEET_ID" --records '[{"values": {"类别": [{"type": "text", "text": "研究经费"}]}}]'
 ```
 
 ## 可见性与分享机制
 
 - **发起人自动成为管理员**：创建时自动添加到 admin_users，无需手动指定
-- **分享链接**：创建后自动获取 share_url，可通过 `./scripts/share-sheet.sh get-url` 获取
+- **分享链接**：创建后自动获取 share_url，可通过 `bash skills/wecom-smartsheet/scripts/share-sheet.sh get-url` 获取
 - **权限角色**：管理员（查看、编辑、修改设置）vs 分享链接访问者（根据链接权限）
 - **查看位置**：只有管理员能在「文档」应用中看到表格；其他人通过分享链接访问
 - **调整权限**：可通过企业微信客户端随时调整分享权限
