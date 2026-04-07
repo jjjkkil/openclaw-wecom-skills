@@ -178,6 +178,12 @@ cmd_dept() {
     _api_call "GET" "/cgi-bin/user/simplelist?department_id=${deptid}&fetch_child=${fetch_child}"
 }
 
+# 获取部门列表（ID → 名称映射）
+cmd_dept_list() {
+    echo "🏢 获取部门列表" >&2
+    _api_call "GET" "/cgi-bin/department/list"
+}
+
 # 主函数
 main() {
     local cmd="${1:-}"
@@ -193,6 +199,9 @@ main() {
         dept)
             cmd_dept "$@"
             ;;
+        dept-list|deptlist)
+            cmd_dept_list "$@"
+            ;;
         help|--help|-h)
             cat << EOF
 企业微信通讯录读取工具
@@ -200,7 +209,8 @@ main() {
 用法:
   $0 get <userid>              读取单个成员信息
   $0 batch <userid1,userid2>  批量读取成员信息
-  $0 dept <部门ID> [fetch_child]  按部门获取成员 userid 列表
+  $0 dept <部门ID> [fetch_child]   按部门获取成员 userid 列表
+  $0 dept-list                    获取所有部门列表（ID→名称映射）
 
 示例:
   # 读取单个成员
