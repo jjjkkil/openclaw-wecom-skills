@@ -31,6 +31,10 @@ CORP_ID="${CORP_ID}"
 CORP_SECRET="${CORP_SECRET}"
 AGENT_ID="${AGENT_ID}"
 PROXY_URL="${PROXY_URL}"
+PROXY_ARG=""
+if [[ -n "$PROXY_URL" ]]; then
+    PROXY_ARG="-x $PROXY_URL"
+fi
 
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "⚠️  警告: 未找到配置文件 $CONFIG_FILE，使用默认配置" >&2
@@ -56,9 +60,14 @@ get_access_token() {
         fi
     fi
     
-    local response=$(curl -s --connect-timeout 10 -m 30 \
-        -x "$PROXY_URL" \
-        "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=${CORP_ID}&corpsecret=${CORP_SECRET}")
+    local response
+    if [[ -n "$PROXY_ARG" ]]; then
+        response=$(curl -s --connect-timeout 10 -m 30 $PROXY_ARG \
+            "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=${CORP_ID}&corpsecret=${CORP_SECRET}")
+    else
+        response=$(curl -s --connect-timeout 10 -m 30 \
+            "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=${CORP_ID}&corpsecret=${CORP_SECRET}")
+    fi
     
     local errcode=$(echo "$response" | grep -o '"errcode":[0-9]*' | cut -d':' -f2)
     
@@ -144,11 +153,19 @@ rename_doc() {
     
     local body="{\"docid\":\"${docid}\",\"new_name\":\"${new_name}\"}"
     
-    curl -s --connect-timeout 10 -m 30 \
-        -x "$PROXY_URL" \
-        -H "Content-Type: application/json" \
-        -d "$body" \
-        "https://qyapi.weixin.qq.com/cgi-bin/wedoc/rename_doc?access_token=${access_token}"
+    local response
+    if [[ -n "$PROXY_ARG" ]]; then
+        response=$(curl -s --connect-timeout 10 -m 30 $PROXY_ARG \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/rename_doc?access_token=${access_token}")
+    else
+        response=$(curl -s --connect-timeout 10 -m 30 \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/rename_doc?access_token=${access_token}")
+    fi
+    echo "$response"
 }
 
 # 删除文档
@@ -181,11 +198,19 @@ delete_doc() {
     
     local body="{\"docid\":\"${docid}\"}"
     
-    curl -s --connect-timeout 10 -m 30 \
-        -x "$PROXY_URL" \
-        -H "Content-Type: application/json" \
-        -d "$body" \
-        "https://qyapi.weixin.qq.com/cgi-bin/wedoc/del_doc?access_token=${access_token}"
+    local response
+    if [[ -n "$PROXY_ARG" ]]; then
+        response=$(curl -s --connect-timeout 10 -m 30 $PROXY_ARG \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/del_doc?access_token=${access_token}")
+    else
+        response=$(curl -s --connect-timeout 10 -m 30 \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/del_doc?access_token=${access_token}")
+    fi
+    echo "$response"
 }
 
 # 获取文档信息
@@ -218,11 +243,19 @@ get_doc_info() {
     
     local body="{\"docid\":\"${docid}\"}"
     
-    curl -s --connect-timeout 10 -m 30 \
-        -x "$PROXY_URL" \
-        -H "Content-Type: application/json" \
-        -d "$body" \
-        "https://qyapi.weixin.qq.com/cgi-bin/wedoc/get_doc_base_info?access_token=${access_token}"
+    local response
+    if [[ -n "$PROXY_ARG" ]]; then
+        response=$(curl -s --connect-timeout 10 -m 30 $PROXY_ARG \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/get_doc_base_info?access_token=${access_token}")
+    else
+        response=$(curl -s --connect-timeout 10 -m 30 \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/get_doc_base_info?access_token=${access_token}")
+    fi
+    echo "$response"
 }
 
 # 获取分享链接
@@ -255,11 +288,19 @@ get_share_url() {
     
     local body="{\"docid\":\"${docid}\"}"
     
-    curl -s --connect-timeout 10 -m 30 \
-        -x "$PROXY_URL" \
-        -H "Content-Type: application/json" \
-        -d "$body" \
-        "https://qyapi.weixin.qq.com/cgi-bin/wedoc/get_doc_share_url?access_token=${access_token}"
+    local response
+    if [[ -n "$PROXY_ARG" ]]; then
+        response=$(curl -s --connect-timeout 10 -m 30 $PROXY_ARG \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/get_doc_share_url?access_token=${access_token}")
+    else
+        response=$(curl -s --connect-timeout 10 -m 30 \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/get_doc_share_url?access_token=${access_token}")
+    fi
+    echo "$response"
 }
 
 # 获取文档权限
@@ -292,11 +333,19 @@ get_doc_auth() {
     
     local body="{\"docid\":\"${docid}\"}"
     
-    curl -s --connect-timeout 10 -m 30 \
-        -x "$PROXY_URL" \
-        -H "Content-Type: application/json" \
-        -d "$body" \
-        "https://qyapi.weixin.qq.com/cgi-bin/wedoc/get_doc_auth?access_token=${access_token}"
+    local response
+    if [[ -n "$PROXY_ARG" ]]; then
+        response=$(curl -s --connect-timeout 10 -m 30 $PROXY_ARG \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/get_doc_auth?access_token=${access_token}")
+    else
+        response=$(curl -s --connect-timeout 10 -m 30 \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/get_doc_auth?access_token=${access_token}")
+    fi
+    echo "$response"
 }
 
 # 主入口

@@ -31,6 +31,10 @@ CORP_ID="${CORP_ID}"
 CORP_SECRET="${CORP_SECRET}"
 AGENT_ID="${AGENT_ID}"
 PROXY_URL="${PROXY_URL}"
+PROXY_ARG=""
+if [[ -n "$PROXY_URL" ]]; then
+    PROXY_ARG="-x $PROXY_URL"
+fi
 
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "⚠️  警告: 未找到配置文件 $CONFIG_FILE，使用默认配置" >&2
@@ -56,9 +60,14 @@ get_access_token() {
         fi
     fi
     
-    local response=$(curl -s --connect-timeout 10 -m 30 \
-        -x "$PROXY_URL" \
-        "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=${CORP_ID}&corpsecret=${CORP_SECRET}")
+    local response
+    if [[ -n "$PROXY_ARG" ]]; then
+        response=$(curl -s --connect-timeout 10 -m 30 $PROXY_ARG \
+            "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=${CORP_ID}&corpsecret=${CORP_SECRET}")
+    else
+        response=$(curl -s --connect-timeout 10 -m 30 \
+            "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=${CORP_ID}&corpsecret=${CORP_SECRET}")
+    fi
     
     local errcode=$(echo "$response" | grep -o '"errcode":[0-9]*' | cut -d':' -f2)
     
@@ -171,11 +180,19 @@ add_records() {
     
     local body="{\"docid\":\"${docid}\",\"sheet_id\":\"${sheet_id}\",\"key_type\":\"${key_type}\",\"records\":${records}}"
     
-    curl -s --connect-timeout 10 -m 30 \
-        -x "$PROXY_URL" \
-        -H "Content-Type: application/json" \
-        -d "$body" \
-        "https://qyapi.weixin.qq.com/cgi-bin/wedoc/smartsheet/add_records?access_token=${access_token}"
+    local response
+    if [[ -n "$PROXY_ARG" ]]; then
+        response=$(curl -s --connect-timeout 10 -m 30 $PROXY_ARG \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/smartsheet/add_records?access_token=${access_token}")
+    else
+        response=$(curl -s --connect-timeout 10 -m 30 \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/smartsheet/add_records?access_token=${access_token}")
+    fi
+    echo "$response"
 }
 
 # 删除记录
@@ -228,11 +245,19 @@ delete_records() {
     
     local body="{\"docid\":\"${docid}\",\"sheet_id\":\"${sheet_id}\",\"record_ids\":[${id_array}]}"
     
-    curl -s --connect-timeout 10 -m 30 \
-        -x "$PROXY_URL" \
-        -H "Content-Type: application/json" \
-        -d "$body" \
-        "https://qyapi.weixin.qq.com/cgi-bin/wedoc/smartsheet/del_records?access_token=${access_token}"
+    local response
+    if [[ -n "$PROXY_ARG" ]]; then
+        response=$(curl -s --connect-timeout 10 -m 30 $PROXY_ARG \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/smartsheet/del_records?access_token=${access_token}")
+    else
+        response=$(curl -s --connect-timeout 10 -m 30 \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/smartsheet/del_records?access_token=${access_token}")
+    fi
+    echo "$response"
 }
 
 # 更新记录
@@ -280,11 +305,19 @@ update_records() {
     
     local body="{\"docid\":\"${docid}\",\"sheet_id\":\"${sheet_id}\",\"key_type\":\"${key_type}\",\"records\":${records}}"
     
-    curl -s --connect-timeout 10 -m 30 \
-        -x "$PROXY_URL" \
-        -H "Content-Type: application/json" \
-        -d "$body" \
-        "https://qyapi.weixin.qq.com/cgi-bin/wedoc/smartsheet/update_records?access_token=${access_token}"
+    local response
+    if [[ -n "$PROXY_ARG" ]]; then
+        response=$(curl -s --connect-timeout 10 -m 30 $PROXY_ARG \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/smartsheet/update_records?access_token=${access_token}")
+    else
+        response=$(curl -s --connect-timeout 10 -m 30 \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/smartsheet/update_records?access_token=${access_token}")
+    fi
+    echo "$response"
 }
 
 # 查询记录
@@ -350,11 +383,19 @@ list_records() {
         body=$(echo "$body" | sed "s/}$/,\"filter\":${filter}}/")
     fi
     
-    curl -s --connect-timeout 10 -m 30 \
-        -x "$PROXY_URL" \
-        -H "Content-Type: application/json" \
-        -d "$body" \
-        "https://qyapi.weixin.qq.com/cgi-bin/wedoc/smartsheet/get_records?access_token=${access_token}"
+    local response
+    if [[ -n "$PROXY_ARG" ]]; then
+        response=$(curl -s --connect-timeout 10 -m 30 $PROXY_ARG \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/smartsheet/get_records?access_token=${access_token}")
+    else
+        response=$(curl -s --connect-timeout 10 -m 30 \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/smartsheet/get_records?access_token=${access_token}")
+    fi
+    echo "$response"
 }
 
 # 主入口

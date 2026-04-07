@@ -30,13 +30,15 @@ load_config() {
     fi
 }
 
-# 获取 access_token
+# 获取 access_token（统一直接调用，无代理时直连）
 get_access_token() {
-    if [[ -x "$TOKEN_SCRIPT" ]]; then
-        "$TOKEN_SCRIPT" get
-    else
-        load_config
+    [[ -z "$PROXY_URL" ]] && load_config
+    if [[ -n "$PROXY_URL" ]]; then
         curl -s --proxy "$PROXY_URL" \
+            "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=${CORP_ID}&corpsecret=${CORP_SECRET}" \
+            | jq -r '.access_token // empty'
+    else
+        curl -s \
             "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=${CORP_ID}&corpsecret=${CORP_SECRET}" \
             | jq -r '.access_token // empty'
     fi
@@ -75,11 +77,21 @@ _api_call() {
 
     local response
     if [[ -n "$json_body" ]]; then
-        response=$(curl -s --proxy "$PROXY_URL" -X "$method" \
-            -H "Content-Type: application/json" \
-            -d "$json_body" "$url")
+        if [[ -n "$PROXY_URL" ]]; then
+            response=$(curl -s --proxy "$PROXY_URL" -X "$method" \
+                -H "Content-Type: application/json" \
+                -d "$json_body" "$url")
+        else
+            response=$(curl -s -X "$method" \
+                -H "Content-Type: application/json" \
+                -d "$json_body" "$url")
+        fi
     else
-        response=$(curl -s --proxy "$PROXY_URL" -X "$method" "$url")
+        if [[ -n "$PROXY_URL" ]]; then
+            response=$(curl -s --proxy "$PROXY_URL" -X "$method" "$url")
+        else
+            response=$(curl -s -X "$method" "$url")
+        fi
     fi
 
     if check_and_retry "$response"; then
@@ -87,11 +99,21 @@ _api_call() {
         token=$(get_access_token)
         url="https://qyapi.weixin.qq.com${path}${separator}access_token=${token}"
         if [[ -n "$json_body" ]]; then
-            response=$(curl -s --proxy "$PROXY_URL" -X "$method" \
-                -H "Content-Type: application/json" \
-                -d "$json_body" "$url")
+            if [[ -n "$PROXY_URL" ]]; then
+                response=$(curl -s --proxy "$PROXY_URL" -X "$method" \
+                    -H "Content-Type: application/json" \
+                    -d "$json_body" "$url")
+            else
+                response=$(curl -s -X "$method" \
+                    -H "Content-Type: application/json" \
+                    -d "$json_body" "$url")
+            fi
         else
-            response=$(curl -s --proxy "$PROXY_URL" -X "$method" "$url")
+            if [[ -n "$PROXY_URL" ]]; then
+                response=$(curl -s --proxy "$PROXY_URL" -X "$method" "$url")
+            else
+                response=$(curl -s -X "$method" "$url")
+            fi
         fi
     fi
 

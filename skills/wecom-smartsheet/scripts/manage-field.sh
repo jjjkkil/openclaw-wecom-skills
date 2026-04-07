@@ -31,6 +31,10 @@ CORP_ID="${CORP_ID}"
 CORP_SECRET="${CORP_SECRET}"
 AGENT_ID="${AGENT_ID}"
 PROXY_URL="${PROXY_URL}"
+PROXY_ARG=""
+if [[ -n "$PROXY_URL" ]]; then
+    PROXY_ARG="-x $PROXY_URL"
+fi
 
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "⚠️  警告: 未找到配置文件 $CONFIG_FILE，使用默认配置" >&2
@@ -56,9 +60,14 @@ get_access_token() {
         fi
     fi
     
-    local response=$(curl -s --connect-timeout 10 -m 30 \
-        -x "$PROXY_URL" \
-        "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=${CORP_ID}&corpsecret=${CORP_SECRET}")
+    local response
+    if [[ -n "$PROXY_ARG" ]]; then
+        response=$(curl -s --connect-timeout 10 -m 30 $PROXY_ARG \
+            "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=${CORP_ID}&corpsecret=${CORP_SECRET}")
+    else
+        response=$(curl -s --connect-timeout 10 -m 30 \
+            "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=${CORP_ID}&corpsecret=${CORP_SECRET}")
+    fi
     
     local errcode=$(echo "$response" | grep -o '"errcode":[0-9]*' | cut -d':' -f2)
     
@@ -167,11 +176,19 @@ add_fields() {
     
     local body="{\"docid\":\"${docid}\",\"sheet_id\":\"${sheet_id}\",\"fields\":${fields}}"
     
-    curl -s --connect-timeout 10 -m 30 \
-        -x "$PROXY_URL" \
-        -H "Content-Type: application/json" \
-        -d "$body" \
-        "https://qyapi.weixin.qq.com/cgi-bin/wedoc/smartsheet/add_fields?access_token=${access_token}"
+    local response
+    if [[ -n "$PROXY_ARG" ]]; then
+        response=$(curl -s --connect-timeout 10 -m 30 $PROXY_ARG \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/smartsheet/add_fields?access_token=${access_token}")
+    else
+        response=$(curl -s --connect-timeout 10 -m 30 \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/smartsheet/add_fields?access_token=${access_token}")
+    fi
+    echo "$response"
 }
 
 # 删除字段
@@ -224,11 +241,19 @@ delete_fields() {
     
     local body="{\"docid\":\"${docid}\",\"sheet_id\":\"${sheet_id}\",\"field_ids\":[${id_array}]}"
     
-    curl -s --connect-timeout 10 -m 30 \
-        -x "$PROXY_URL" \
-        -H "Content-Type: application/json" \
-        -d "$body" \
-        "https://qyapi.weixin.qq.com/cgi-bin/wedoc/smartsheet/del_fields?access_token=${access_token}"
+    local response
+    if [[ -n "$PROXY_ARG" ]]; then
+        response=$(curl -s --connect-timeout 10 -m 30 $PROXY_ARG \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/smartsheet/del_fields?access_token=${access_token}")
+    else
+        response=$(curl -s --connect-timeout 10 -m 30 \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/smartsheet/del_fields?access_token=${access_token}")
+    fi
+    echo "$response"
 }
 
 # 查询字段列表
@@ -266,11 +291,19 @@ list_fields() {
     
     local body="{\"docid\":\"${docid}\",\"sheet_id\":\"${sheet_id}\"}"
     
-    curl -s --connect-timeout 10 -m 30 \
-        -x "$PROXY_URL" \
-        -H "Content-Type: application/json" \
-        -d "$body" \
-        "https://qyapi.weixin.qq.com/cgi-bin/wedoc/smartsheet/get_fields?access_token=${access_token}"
+    local response
+    if [[ -n "$PROXY_ARG" ]]; then
+        response=$(curl -s --connect-timeout 10 -m 30 $PROXY_ARG \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/smartsheet/get_fields?access_token=${access_token}")
+    else
+        response=$(curl -s --connect-timeout 10 -m 30 \
+            -H "Content-Type: application/json" \
+            -d "$body" \
+            "https://qyapi.weixin.qq.com/cgi-bin/wedoc/smartsheet/get_fields?access_token=${access_token}")
+    fi
+    echo "$response"
 }
 
 # 主入口
